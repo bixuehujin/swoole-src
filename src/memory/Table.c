@@ -29,7 +29,7 @@ swTable* swTable_new(uint32_t rows_size)
         swWarn("mutex create failed.");
         return NULL;
     }
-    table->columns = swHashMap_new(SW_HASHMAP_INIT_BUCKET_N);
+    table->columns = swHashMap_new(SW_HASHMAP_INIT_BUCKET_N, free);
     if (!table->columns)
     {
         return NULL;
@@ -113,11 +113,13 @@ int swTable_create(swTable *table)
 void swTable_free(swTable *table)
 {
 
-    //TODO free columns
+//    TODO free columns
 //    if (table->item_size > 0)
 //    {
 //
 //    }
+	swHashMap_free(table->columns);
+
     sw_shm_free(table->memory);
 }
 
