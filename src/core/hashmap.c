@@ -32,6 +32,7 @@ static int swHashMap_delete_node(swHashMap_node *root, swHashMap_node *del_node)
 	if (hmap->dtor) {                      \
 		hmap->dtor(node->data);            \
 	}                                      \
+	sw_free(node->key_str);                \
 	sw_free(node);                         \
 
 
@@ -266,7 +267,6 @@ int swHashMap_del(swHashMap* hmap, char *key, uint16_t key_len)
 		return SW_ERR;
 	}
 	swHashMap_delete_node(root, node);
-	sw_free(node->key_str);
 
 	FREE_NODE(hmap, node);
 
