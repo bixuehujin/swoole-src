@@ -329,8 +329,7 @@ void swHashMap_free(swHashMap* hmap)
 
 	sw_free(hmap->root->hh.tbl->buckets);
 	sw_free(hmap->root->hh.tbl);
-
-	FREE_NODE(hmap, hmap->root);
+	sw_free(hmap->root);
 
 	sw_free(hmap);
 }

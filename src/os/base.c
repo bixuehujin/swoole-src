@@ -30,7 +30,7 @@ static swThreadPool swAioBase_thread_pool;
 static int swAioBase_pipe_read;
 static int swAioBase_pipe_write;
 
-int swAio_init(uint8_t aio_mode)
+int swAio_init(void)
 {
     if (SwooleAIO.init)
     {
@@ -46,7 +46,7 @@ int swAio_init(uint8_t aio_mode)
     SwooleAIO.reactor = SwooleG.main_reactor;
     int ret = 0;
 
-    switch (aio_mode)
+    switch (SwooleAIO.mode)
     {
 #ifdef HAVE_LINUX_AIO
     case SW_AIO_LINUX:
@@ -201,7 +201,7 @@ static int swAioBase_thread_onTask(swThreadPool *pool, void *task, int task_len)
 		ret = pread(event->fd, event->buf, event->nbytes, event->offset);
 		break;
 	case SW_AIO_DNS_LOOKUP:
-		if (!(host_entry = gethostbyname(event->buf)))
+		if (!(host_entry = gethostbyname(event->req)))
 		{
 			event->error = errno;
 		}
@@ -209,6 +209,7 @@ static int swAioBase_thread_onTask(swThreadPool *pool, void *task, int task_len)
 		{
 			memcpy(&addr, host_entry->h_addr_list[0], host_entry->h_length);
 			ip_addr = inet_ntoa(addr);
+			bzero(event->buf, event->nbytes);
 			memcpy(event->buf, ip_addr, strnlen(ip_addr, SW_IP_MAX_LENGTH) + 1);
 			ret = 0;
 		}

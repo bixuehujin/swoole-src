@@ -39,6 +39,8 @@ typedef struct _swClient
     uint16_t package_body_offset;
     uint32_t package_max_length;
 
+    uint32_t udp_sock_buffer_size;
+
 	char *server_str;
 	void *ptr;
 
@@ -63,8 +65,6 @@ typedef struct _swClient
 } swClient;
 
 int swClient_create(swClient *cli, int type, int async);
-int swClient_close(swClient *cli);
-
 int swDNSResolver_request(char *domain, void (*callback)(void *addrs));
 
 #endif /* SW_CLIENT_H_ */

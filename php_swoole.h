@@ -160,6 +160,7 @@ extern HashTable php_sw_aio_callback;
 
 extern uint8_t php_sw_reactor_ok;
 extern uint8_t php_sw_reactor_wait_onexit;
+extern uint8_t php_sw_in_client;
 
 PHP_MINIT_FUNCTION(swoole);
 PHP_MSHUTDOWN_FUNCTION(swoole);
@@ -192,6 +193,7 @@ PHP_FUNCTION(swoole_server_shutdown);
 PHP_FUNCTION(swoole_server_heartbeat);
 PHP_FUNCTION(swoole_connection_list);
 PHP_FUNCTION(swoole_connection_info);
+PHP_METHOD(swoole_server, stats);
 
 PHP_FUNCTION(swoole_event_add);
 PHP_FUNCTION(swoole_event_set);

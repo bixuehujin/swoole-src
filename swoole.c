@@ -376,6 +376,7 @@ static zend_function_entry swoole_server_methods[] = {
 	PHP_FALIAS(on, swoole_server_on, arginfo_swoole_server_on_oo)
 	PHP_FALIAS(connection_info, swoole_connection_info, arginfo_swoole_connection_info_oo)
 	PHP_FALIAS(connection_list, swoole_connection_list, arginfo_swoole_connection_list_oo)
+	PHP_ME(swoole_server, stats, NULL, ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
@@ -622,6 +623,10 @@ PHP_MINIT_FUNCTION(swoole)
 PHP_MSHUTDOWN_FUNCTION(swoole)
 {
 	swoole_clean();
+	if (php_sw_in_client && SwooleG.main_reactor)
+	{
+	    sw_free(SwooleG.main_reactor);
+	}
 	return SUCCESS;
 }
 /* }}} */
@@ -854,6 +859,20 @@ PHP_FUNCTION(swoole_server_create)
 	zval_ptr_dtor(&zres);
 }
 
+PHP_METHOD(swoole_server, stats)
+{
+    if (SwooleGS->start == 0)
+    {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Server is not running.");
+        RETURN_FALSE;
+    }
+    array_init(return_value);
+    add_assoc_long_ex(return_value, SW_STRL("start_time"), SwooleStats->start_time);
+    add_assoc_long_ex(return_value, SW_STRL("connection_num"), SwooleStats->connection_num);
+    add_assoc_long_ex(return_value, SW_STRL("accept_count"), SwooleStats->accept_count);
+    add_assoc_long_ex(return_value, SW_STRL("close_count"), SwooleStats->close_count);
+}
+
 PHP_FUNCTION(swoole_server_set)
 {
 	zval *zset = NULL;
@@ -942,12 +961,18 @@ PHP_FUNCTION(swoole_server_set)
 		convert_to_long(*v);
 		serv->max_conn = (int)Z_LVAL_PP(v);
 	}
-	//max_request
-	if (zend_hash_find(vht, ZEND_STRS("max_request"), (void **)&v) == SUCCESS)
-	{
-		convert_to_long(*v);
-		serv->max_request = (int)Z_LVAL_PP(v);
-	}
+    //max_request
+    if (zend_hash_find(vht, ZEND_STRS("max_request"), (void **) &v) == SUCCESS)
+    {
+        convert_to_long(*v);
+        serv->max_request = (int) Z_LVAL_PP(v);
+    }
+    //task_max_request
+    if (zend_hash_find(vht, ZEND_STRS("task_max_request"), (void **) &v) == SUCCESS)
+    {
+        convert_to_long(*v);
+        serv->task_max_request = (int) Z_LVAL_PP(v);
+    }
 	//cpu affinity
 	if (zend_hash_find(vht, ZEND_STRS("open_cpu_affinity"), (void **)&v) == SUCCESS)
 	{
