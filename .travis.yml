@@ -15,4 +15,5 @@ before_script:
   - ./travis/compile.sh
 
 script:
-  - TEST_PHP_EXECUTABLE=`which php` php run-tests.php --show-diff
+  - make install
+  - TEST_PHP_EXECUTABLE=`which php` php run-tests.php -d extension=swoole.so --show-diff
