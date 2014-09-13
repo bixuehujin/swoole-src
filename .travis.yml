@@ -15,4 +15,4 @@ before_script:
   - ./travis/compile.sh
 
 script:
-  - php run-tests.php -p=`which php` --show-diff
+  - TEST_PHP_EXECUTABLE=`which php` php run-tests.php --show-diff
