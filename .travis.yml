@@ -7,15 +7,12 @@ php:
 
 notifications:
   email: false
-   
-env:
-  - REPORT_EXIT_STATUS=1 NO_INTERACTION=1
 
-#Compile
+env:
+  - REPORT_EXIT_STATUS=1 TEST_PHP_ARGS="-q --show-diff"
+
 before_script:
-    - ./travis/compile.sh
+  - ./travis/compile.sh
 
 script:
-    - exit 0
-
-
+  - php run-tests.php -p=`which php` --show-diff
