@@ -99,8 +99,8 @@ static void php_swoole_table_row2array(swTable *table, swTableRow *row, zval *re
         }
         if (col->type == SW_TABLE_STRING)
         {
-            uint16_t vlen = *(int16_t *) (row->data + col->index);
-            add_assoc_stringl_ex(return_value, col->name->str, col->name->length + 1, row->data + col->index + 2, vlen, 1);
+            swTable_string_length_t vlen = *(swTable_string_length_t *) (row->data + col->index);
+            add_assoc_stringl_ex(return_value, col->name->str, col->name->length + 1, row->data + col->index + sizeof(swTable_string_length_t), vlen, 1);
         }
         else if (col->type == SW_TABLE_FLOAT)
         {
@@ -167,6 +167,7 @@ void swoole_table_column_free(swTableColumn *col)
 PHP_METHOD(swoole_table, __construct)
 {
     long table_size;
+
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &table_size) == FAILURE)
     {
         RETURN_FALSE;
@@ -175,6 +176,14 @@ PHP_METHOD(swoole_table, __construct)
     {
         RETURN_FALSE;
     }
+
+#ifdef ZTS
+    if (sw_thread_ctx == NULL)
+    {
+        TSRMLS_SET_CTX(sw_thread_ctx);
+    }
+#endif
+
     swTable *table = swTable_new(table_size);
     zval *zres;
     MAKE_STD_ZVAL(zres);
@@ -238,6 +247,8 @@ PHP_METHOD(swoole_table, set)
     int klen;
     Bucket *p = Z_ARRVAL_P(array)->pListHead;
 
+    sw_atomic_t *lock = &row->lock;
+    sw_spinlock(lock);
     do
     {
         v = p->pDataPtr;
@@ -266,6 +277,7 @@ PHP_METHOD(swoole_table, set)
             swTableRow_set_value(row, col, &Z_LVAL_P(v), 0);
         }
     } while (p);
+    sw_spinlock_release(lock);
 
     RETURN_TRUE;
 }
@@ -311,7 +323,6 @@ PHP_METHOD(swoole_table, current)
 
     swTable *table = php_swoole_table_get(getThis() TSRMLS_CC);
     swTableRow *row = swTable_iterator_current(table);
-
     php_swoole_table_row2array(table, row, return_value);
 }
 
@@ -382,10 +393,8 @@ PHP_METHOD(swoole_table, del)
         RETURN_FALSE;
     }
 
-    array_init(return_value);
-
     swTable *table = php_swoole_table_get(getThis() TSRMLS_CC);
-    swTableRow_del(table, key, keylen);
+    SW_CHECK_RETURN(swTableRow_del(table, key, keylen));
 }
 
 PHP_METHOD(swoole_table, lock)
