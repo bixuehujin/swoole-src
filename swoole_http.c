@@ -161,9 +161,17 @@ const zend_function_entry swoole_http_wsresponse_methods[] =
 
 static int http_request_on_path(php_http_parser *parser, const char *at, size_t length)
 {
+    TSRMLS_FETCH_FROM_CTX(sw_thread_ctx ? sw_thread_ctx : NULL);
+
     http_client *client = parser->data;
     client->request.path = estrndup(at, length);
     client->request.path_len = length;
+
+    zval *get;
+    MAKE_STD_ZVAL(get);
+    array_init(get);
+    zend_update_property(swoole_http_request_class_entry_ptr, client->zrequest, ZEND_STRL("get"), get TSRMLS_CC);
+
     return 0;
 }
 
@@ -223,10 +231,8 @@ static int http_request_on_query_string(php_http_parser *parser, const char *at,
     http_client *client = parser->data;
     char *query = estrndup(at, length);
 
-    zval *get;
-    MAKE_STD_ZVAL(get);
-    array_init(get);
-    zend_update_property(swoole_http_request_class_entry_ptr, client->zrequest, ZEND_STRL("get"), get TSRMLS_CC);
+    zval *get = zend_read_property(swoole_http_request_class_entry_ptr, client->zrequest, ZEND_STRL("get"), 1 TSRMLS_CC);
+
     sapi_module.treat_data(PARSE_STRING, query, get TSRMLS_CC);
     mergeGlobal(get, client->zrequest, HTTP_GLOBAL_GET);
     return 0;
