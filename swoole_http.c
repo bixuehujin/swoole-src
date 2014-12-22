@@ -309,7 +309,7 @@ static int http_request_on_header_value(php_http_parser *parser, const char *at,
         add_assoc_stringl_ex(cookie, keybuf, kv.klen , kv.v, kv.vlen, 1);
 //        ZEND_SET_SYMBOL(&EG(symbol_table), "_COOKIE", cookie);
         mergeGlobal(cookie, client->zrequest, HTTP_GLOBAL_COOKIE);
-        
+
     }
     else if (memcmp(header_name, ZEND_STRL("upgrade")) == 0
             && memcmp(at, ZEND_STRL("websocket")) == 0)
@@ -745,7 +745,7 @@ void swoole_http_init(int module_number TSRMLS_DC)
 
     INIT_CLASS_ENTRY(swoole_http_request_ce, "swoole_http_request", swoole_http_request_methods);
     swoole_http_request_class_entry_ptr = zend_register_internal_class(&swoole_http_request_ce TSRMLS_CC);
-    
+
     INIT_CLASS_ENTRY(swoole_http_wsresponse_ce, "swoole_http_wsresponse", swoole_http_wsresponse_methods);
     swoole_http_wsresponse_class_entry_ptr = zend_register_internal_class(&swoole_http_wsresponse_ce TSRMLS_CC);
 
@@ -911,12 +911,32 @@ static char *http_status_message(int code)
         return "100 Continue";
     case 101:
         return "101 Switching Protocols";
+    case 102:
+        return "102 Processing";
+    case 118:
+        return "118 Connection timed out";
+    case 200:
+        return "200 OK";
     case 201:
         return "201 Created";
+    case 202:
+        return "202 Accepted";
+    case 203:
+        return "203 Non-Authoritative";
     case 204:
         return "204 No Content";
+    case 205:
+        return "205 Reset Content";
     case 206:
         return "206 Partial Content";
+    case 207:
+        return "207 Multi-Status";
+    case 208:
+        return "208 Already Reported";
+    case 210:
+        return "210 Content Different";
+    case 226:
+        return "226 IM Used";
     case 300:
         return "300 Multiple Choices";
     case 301:
@@ -927,12 +947,22 @@ static char *http_status_message(int code)
         return "303 See Other";
     case 304:
         return "304 Not Modified";
+    case 305:
+        return "305 Use Proxy";
+    case 306:
+        return "306 Reserved";
     case 307:
         return "307 Temporary Redirect";
+    case 308:
+        return "308 Permanent Redirect";
+    case 310:
+        return "310 Too many Redirect";
     case 400:
         return "400 Bad Request";
     case 401:
         return "401 Unauthorized";
+    case 402:
+        return "402 Payment Required";
     case 403:
         return "403 Forbidden";
     case 404:
@@ -941,10 +971,18 @@ static char *http_status_message(int code)
         return "405 Method Not Allowed";
     case 406:
         return "406 Not Acceptable";
+    case 407:
+        return "407 Proxy Authentication Required";
     case 408:
         return "408 Request Timeout";
+    case 409:
+        return "409 Conflict";
     case 410:
         return "410 Gone";
+    case 411:
+        return "411 Length Required";
+    case 412:
+        return "412 Precondition Failed";
     case 413:
         return "413 Request Entity Too Large";
     case 414:
@@ -955,17 +993,54 @@ static char *http_status_message(int code)
         return "416 Requested Range Not Satisfiable";
     case 417:
         return "417 Expectation Failed";
+    case 418:
+        return "418 I\'m a teapot";
+    case 422:
+        return "422 Unprocessable entity";
+    case 423:
+        return "423 Locked";
+    case 424:
+        return "424 Method failure";
+    case 425:
+        return "425 Unordered Collection";
+    case 426:
+        return "426 Upgrade Required";
+    case 428:
+        return "428 Precondition Required";
+    case 429:
+        return "429 Too Many Requests";
+    case 431:
+        return "431 Request Header Fields Too Large";
+    case 449:
+        return "449 Retry With";
+    case 450:
+        return "450 Blocked by Windows Parental Controls";
     case 500:
         return "500 Internal Server Error";
     case 501:
         return "501 Method Not Implemented";
+    case 502:
+        return "502 Bad Gateway or Proxy Error";
     case 503:
         return "503 Service Unavailable";
+    case 504:
+        return "504 Gateway Time-out";
+    case 505:
+        return "505 HTTP Version not supported";
     case 506:
         return "506 Variant Also Negotiates";
-    case 200:
+    case 507:
+        return "507 Insufficient storage";
+    case 508:
+        return "508 Loop Detected";
+    case 509:
+        return "509 Bandwidth Limit Exceeded";
+    case 510:
+        return "510 Not Extended";
+    case 511:
+        return "511 Network Authentication Required";
     default:
-        return "200 OK";
+        return NULL; // for invalid http status codes
     }
 }
 
@@ -1122,26 +1197,26 @@ PHP_METHOD(swoole_http_response, end)
             {
                 continue;
             }
-            if(strcmp(key, key_server) == 0) 
+            if(strcmp(key, key_server) == 0)
             {
                 flag |= 0x1;
             }
-            else if(strcmp(key, key_connection) == 0) 
+            else if(strcmp(key, key_connection) == 0)
             {
                 flag |= 0x2;
             }
-            else if(strcmp(key, key_content_length) == 0) 
+            else if(strcmp(key, key_content_length) == 0)
             {
                 flag |= 0x4;
             }
-            else if(strcmp(key, key_date) == 0) 
+            else if(strcmp(key, key_date) == 0)
             {
                 flag |= 0x8;
             }
             n = snprintf(buf, 128, "%s: %s\r\n", key, Z_STRVAL_PP(value));
             swString_append_ptr(response, buf, n);
         }
-        
+
         if (!(flag & 0x1))
         {
             swString_append_ptr(response, ZEND_STRL("Server: "SW_HTTP_SERVER_SOFTWARE"\r\n"));
@@ -1484,6 +1559,11 @@ PHP_METHOD(swoole_http_response, status)
     long http_status;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &http_status) == FAILURE)
     {
+        return;
+    }
+
+    if (!http_status_message(http_status)) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "the http status code %d does not supported.", http_status);
         return;
     }
 
